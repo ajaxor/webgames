@@ -180,7 +180,7 @@ function render(recs) {
     const a = document.createElement('a');
     a.className = 'card';
     a.dataset.id = g.id;
-    a.href = 'play.html?game=' + encodeURIComponent(g.id);
+    a.href = 'install.html?game=' + encodeURIComponent(g.id);
     const img = g.icon || 'icons/icon-512.png';
     a.innerHTML = `
       <img class="art" alt="" loading="lazy" src="${img}">

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Install</title>
+<meta name="theme-color" content="#0e0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root { --bg:#0e0f13; --panel:#171922; --panel-2:#1f222d; --line:#2a2e3b; --text:#eceef4; --muted:#8b90a3; --accent:#e8a93a; --accent-ink:#1a1305;
+    --safe-t: env(safe-area-inset-top,0px); --safe-b: env(safe-area-inset-bottom,0px); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; background: var(--bg); color: var(--text); }
+  body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    min-height:100vh; padding: calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 28px); max-width: 520px; margin: 0 auto; }
+  .back { color: var(--muted); text-decoration: none; font-size: 15px; display: inline-block; padding: 6px 0 14px; }
+  .hero { text-align: center; padding: 8px 0 18px; }
+  .hero img { width: 128px; height: 128px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,.45); background: var(--panel-2); }
+  h1 { font-size: 26px; letter-spacing: -.02em; margin: 16px 0 4px; }
+  .hero p { color: var(--muted); margin: 0 auto; max-width: 380px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; margin-top: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  ol { margin: 0; padding-left: 22px; } li { margin: 8px 0; }
+  li svg { width: 18px; height: 18px; vertical-align: -3px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn { appearance: none; border: 0; width: 100%; height: 50px; border-radius: 14px; font: inherit; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; text-decoration: none; background: var(--accent); color: var(--accent-ink); margin-top: 14px; }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+  .note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .hidden { display: none !important; }
+  .err { color: #ef6a6a; text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+<a class="back" href="./">‹ All games</a>
+<div id="content" class="hidden">
+  <div class="hero">
+    <img id="icon" alt="">
+    <h1 id="title"></h1>
+    <p id="desc"></p>
+  </div>
+
+  <button class="btn hidden" id="installBtn" type="button">Install app</button>
+
+  <div class="card hidden" id="iosCard">
+    <h2>Install on iPhone / iPad</h2>
+    <ol>
+      <li>Open this page in <b>Safari</b> (not inside another app's browser).</li>
+      <li>Tap the <b>Share</b> button
+        <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+        at the bottom of the screen.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+      <li>Launch it from your home screen — it opens full-screen and works offline.</li>
+    </ol>
+  </div>
+
+  <div class="card hidden" id="androidCard">
+    <h2>Install on Android</h2>
+    <ol>
+      <li>Tap <b>Install app</b> above, or open Chrome's <b>⋮</b> menu.</li>
+      <li>Choose <b>Install app</b> / <b>Add to Home screen</b>.</li>
+      <li>Launch it from your home screen.</li>
+    </ol>
+  </div>
+
+  <div class="card hidden" id="desktopCard">
+    <h2>Install on desktop</h2>
+    <ol><li>Use the install icon in the address bar (Chrome / Edge), or the browser menu → <b>Install</b>.</li></ol>
+  </div>
+
+  <a class="btn ghost" id="playBtn" href="#">Play in browser instead</a>
+  <p class="note" id="tokenNote"></p>
+</div>
+<div class="err hidden" id="err"></div>
+
+<script type="module">
+import { loadGames, getToken, registerSW, applyGameMeta, isStandalone } from './lib.js';
+const $ = id => document.getElementById(id);
+const id = new URLSearchParams(location.search).get('game');
+registerSW();
+
+const ua = navigator.userAgent;
+const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(ua);
+
+let deferred = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('installBtn').classList.remove('hidden'); });
+window.addEventListener('appinstalled', () => { $('installBtn').classList.add('hidden'); });
+$('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $('installBtn').classList.add('hidden'); };
+
+(async () => {
+  let game;
+  try { game = (await loadGames()).find(g => g.id === id); } catch (e) { return fail(e.message); }
+  if (!game) return fail(id ? 'Unknown game "' + id + '".' : 'No game selected.');
+
+  const playUrl = 'play.html?game=' + encodeURIComponent(game.id);
+  // Opened from an installed home-screen icon (older iOS keeps this page's URL): go straight to the game.
+  if (isStandalone()) { location.replace(playUrl); return; }
+
+  applyGameMeta(game);
+  $('icon').src = game.icon || 'icons/icon-512.png';
+  $('title').textContent = game.title || game.id;
+  $('desc').textContent = game.description || '';
+  $('playBtn').href = playUrl;
+  $('iosCard').classList.toggle('hidden', !isIOS);
+  $('androidCard').classList.toggle('hidden', !isAndroid);
+  $('desktopCard').classList.toggle('hidden', isIOS || isAndroid);
+  $('tokenNote').textContent = 'Heads up: an installed game keeps its own storage, so the first time you open it you’ll be asked to paste your access token once.';
+  $('content').classList.remove('hidden');
+})();
+
+function fail(msg) { $('err').textContent = msg; $('err').classList.remove('hidden'); }
+</script>
+</body>
+</html>

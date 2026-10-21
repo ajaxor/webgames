@@ -11,7 +11,8 @@ GitHub Pages → Settings → Pages → deploy from `main` / root. Then open `ht
 1. Open the launcher → ⚙ Settings → paste a GitHub token → **Save & sync**.
    Use a fine-grained token with **Contents: read-only** on just the game repos.
 2. Tap a game to play. First launch downloads it; afterwards it runs offline and quietly checks for updates (ETag-based, so unchanged games cost almost nothing). Tap the small handle at the top centre while playing for the menu (home / check for update / restart).
-3. Open a game, then add *that page* to the home screen to get it as its own app with its own icon.
+3. Tapping a game's icon opens its install page (`install.html?game=<id>`) with Add-to-Home-Screen instructions (and an Install button on Android/Chrome). The installed app starts at `play.html?game=<id>` with its own name and icon.
+   Note: an installed home-screen app has its own storage (especially on iOS), so it asks for the token once on first launch.
 
 ## Adding a game
 

@@ -1,9 +1,9 @@
 // Service worker: caches the launcher shell for offline use and generates
 // a per-game web app manifest (manifest/<id>.webmanifest) from games.json so
 // every game can be installed to the home screen on its own.
-const CACHE = 'webgames-shell-v1';
+const CACHE = 'webgames-shell-v2';
 const SHELL = [
-  './', 'index.html', 'play.html', 'lib.js', 'games.json',
+  './', 'index.html', 'install.html', 'play.html', 'lib.js', 'games.json',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
 ];
 

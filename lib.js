@@ -82,7 +82,7 @@ export async function syncGame(g, { force = false } = {}) {
     else if (r.status === 403) msg = 'GitHub refused the request (rate limit, or the token lacks access).';
     else if (r.status === 404) msg = token
       ? 'Not found. Check the repo/path in games.json and that the token can read that repo.'
-      : 'Not found. Private repos need an access token — add one in Settings.';
+      : 'Not found. Private repos need an access token.';
     else msg = 'GitHub returned HTTP ' + r.status + '.';
     const err = new Error(msg);
     err.status = r.status;
@@ -108,3 +108,19 @@ export function registerSW() {
     return navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
+
+/* Make the current page installable as this game's own PWA (name, icon, manifest, colours). */
+export function applyGameMeta(g) {
+  document.title = g.title || g.id;
+  const add = (tag, attrs) => { const el = document.createElement(tag); Object.assign(el, attrs); document.head.appendChild(el); return el; };
+  add('link', { rel: 'manifest', href: 'manifest/' + encodeURIComponent(g.id) + '.webmanifest' });
+  const icon = g.icon || 'icons/icon-512.png';
+  add('link', { rel: 'icon', href: icon });
+  add('link', { rel: 'apple-touch-icon', href: icon });
+  const t = add('meta', {}); t.name = 'apple-mobile-web-app-title'; t.content = g.shortName || g.title || g.id;
+  const c = document.querySelector('meta[name=theme-color]'); if (c) c.content = g.theme || g.background || '#0e0f13';
+  document.body.style.background = g.background || '#0e0f13';
+}
+
+export const isStandalone = () =>
+  (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;

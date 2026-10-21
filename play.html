@@ -47,7 +47,7 @@
 <div id="toast"></div>
 
 <script type="module">
-import { loadGames, getRec, syncGame, registerSW, ago } from './lib.js';
+import { loadGames, getRec, syncGame, registerSW, ago, applyGameMeta, getToken, setToken } from './lib.js';
 
 const $ = id => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('game');
@@ -73,20 +73,6 @@ function show(msg, err, extra) {
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.style.display = 'block';
   clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 2800);
-}
-
-/* Per-game installability: point this page at the generated manifest + icon. */
-function applyMeta(g) {
-  document.title = g.title || g.id;
-  const m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest/' + encodeURIComponent(g.id) + '.webmanifest';
-  document.head.appendChild(m);
-  const icon = g.icon || 'icons/icon-512.png';
-  for (const rel of ['icon', 'apple-touch-icon']) {
-    const l = document.createElement('link'); l.rel = rel; l.href = icon; document.head.appendChild(l);
-  }
-  const t = document.createElement('meta'); t.name = 'apple-mobile-web-app-title'; t.content = g.shortName || g.title || g.id; document.head.appendChild(t);
-  const c = document.querySelector('meta[name=theme-color]'); c.content = g.theme || g.background || '#0e0f13';
-  document.body.style.background = g.background || '#0e0f13';
 }
 
 /* Each game gets its own namespaced localStorage so games don't trample each other's saves. */
@@ -146,6 +132,21 @@ $('updateBtn').onclick = async () => {
   setTimeout(() => $('updateBtn').textContent = 'Check for update', 3000);
 };
 
+/* An installed home-screen app has its own storage (separate from the launcher / Safari), so ask for the token here. */
+function askToken(msg) {
+  show(msg, true);
+  const s = $('status');
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;width:min(360px,100%);margin-top:8px';
+  const inp = document.createElement('input');
+  inp.type = 'password'; inp.placeholder = 'GitHub access token'; inp.autocomplete = 'off';
+  inp.setAttribute('autocapitalize', 'off'); inp.spellcheck = false; inp.value = getToken();
+  inp.style.cssText = 'height:44px;border-radius:12px;border:1px solid #2a2e3b;background:#0e0f13;color:#eceef4;padding:0 12px;font:15px ui-monospace,Menlo,monospace';
+  const go = document.createElement('button'); go.className = 'btn primary'; go.textContent = 'Save token & download';
+  go.onclick = () => { setToken(inp.value); location.reload(); };
+  wrap.append(inp, go); s.appendChild(wrap);
+}
+
 (async function main() {
   if (!id) return show('No game selected.', true);
   try {
@@ -153,7 +154,7 @@ $('updateBtn').onclick = async () => {
     game = games.find(g => g.id === id);
   } catch (e) { return show(e.message, true); }
   if (!game) return show('Unknown game "' + id + '". Is it listed in games.json?', true);
-  applyMeta(game);
+  applyGameMeta(game);
   $('menuTitle').textContent = game.title || game.id;
 
   let rec = await getRec(game.id).catch(() => null);
@@ -166,7 +167,7 @@ $('updateBtn').onclick = async () => {
   } else {
     show('Downloading ' + (game.title || game.id) + '…');
     try { rec = (await syncGame(game)).rec; launch(rec); }
-    catch (e) { show(e.message, true); }
+    catch (e) { e.status ? askToken(e.message) : show(e.message, true); }
   }
 })();
 </script>
