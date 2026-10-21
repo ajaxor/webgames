@@ -69,6 +69,15 @@
     <ol><li>Use the install icon in the address bar (Chrome / Edge), or the browser menu → <b>Install</b>.</li></ol>
   </div>
 
+  <div class="card hidden" id="appCard">
+    <h2>Install from the app</h2>
+    <p style="margin:0 0 4px">This is the installed launcher, and iOS only offers <b>Add to Home Screen</b> in Safari. Open this page in Safari, then follow the steps there.</p>
+    <button class="btn" id="safariBtn" type="button">Open in Safari</button>
+    <button class="btn ghost" id="shareBtn" type="button">Share link…</button>
+    <button class="btn ghost" id="copyBtn" type="button">Copy link</button>
+    <p class="note">If Safari doesn’t open, tap Copy link, open Safari and paste it into the address bar.</p>
+  </div>
+
   <a class="btn ghost" id="playBtn" href="#">Play in browser instead</a>
   <p class="note" id="tokenNote"></p>
 </div>
@@ -96,8 +105,11 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
 
   const playUrl = 'play.html?game=' + encodeURIComponent(game.id);
   const params = new URLSearchParams(location.search);
+  const standalone = isStandalone();
   // Older iOS installs the page's own URL: an app started from it with a token in the address saves it and goes to the game.
-  if (isStandalone() && params.get('k')) { setToken(params.get('k')); location.replace(playUrl); return; }
+  if (standalone && params.get('k')) { setToken(params.get('k')); location.replace(playUrl); return; }
+  // Opened in Safari from the installed launcher's link: Safari has its own storage, so take the token from the link.
+  if (!standalone && params.get('k')) setToken(params.get('k'));
 
   const token = getToken();
   applyGameMeta(game, token);
@@ -111,9 +123,24 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   $('tokenNote').textContent = token
     ? 'Your access token is built into the installed app, so it won’t ask for it.'
     : 'Add your access token in the launcher’s Settings first: installed apps get it from there.';
-  if (token) {
+  if (token && !standalone) {
     // What "Add to Home Screen" saves: the manifest's start URL on current browsers, the page's own URL on older iOS.
     try { history.replaceState(null, '', location.pathname + '?game=' + encodeURIComponent(game.id) + '&k=' + encodeURIComponent(token)); } catch {}
+  }
+  if (standalone) {
+    // Inside the installed launcher there is no Add to Home Screen: hand the page to Safari instead.
+    $('iosCard').classList.add('hidden'); $('androidCard').classList.add('hidden'); $('desktopCard').classList.add('hidden');
+    $('appCard').classList.remove('hidden');
+    const link = new URL('install.html?game=' + encodeURIComponent(game.id) + (token ? '&k=' + encodeURIComponent(token) : ''), location.href).href;
+    $('safariBtn').onclick = () => { location.href = 'x-safari-' + link; }; // iOS 17+; the other buttons are the fallback
+    if (navigator.share) $('shareBtn').onclick = () => navigator.share({ title: game.title || game.id, url: link }).catch(() => {});
+    else $('shareBtn').classList.add('hidden');
+    $('copyBtn').onclick = async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(link); ok = true; } catch {}
+      $('copyBtn').textContent = ok ? 'Link copied' : 'Copy failed — use Share link';
+      setTimeout(() => $('copyBtn').textContent = 'Copy link', 2500);
+    };
   }
   $('content').classList.remove('hidden');
 })();
