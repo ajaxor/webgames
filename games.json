@@ -8,13 +8,38 @@
       "repo": "ajaxor/pocketwars",
       "ref": "main",
       "entry": "index.html",
-      "include": ["index.html", "style.css", "src/", "data/"],
+      "include": [
+        "index.html",
+        "style.css",
+        "src/",
+        "data/"
+      ],
       "icon": "games/pocketwars/icon-512.png",
       "maskableIcon": "games/pocketwars/icon-maskable-512.png",
       "appleIcon": "games/pocketwars/apple-touch-icon.png",
       "background": "#1d2436",
       "theme": "#1d2436",
       "orientation": "any"
+    },
+    {
+      "id": "gaia",
+      "title": "Gaia",
+      "shortName": "Gaia",
+      "description": "Swipe to tip gravity, join three of a kind, tap to dissolve.",
+      "repo": "ajaxor/gaia",
+      "ref": "main",
+      "entry": "index.html",
+      "include": [
+        "index.html",
+        "style.css",
+        "src/"
+      ],
+      "icon": "games/gaia/icon-512.png",
+      "maskableIcon": "games/gaia/icon-maskable-512.png",
+      "appleIcon": "games/gaia/apple-touch-icon.png",
+      "background": "#0e2a1e",
+      "theme": "#0e2a1e",
+      "orientation": "portrait"
     }
   ]
 }
