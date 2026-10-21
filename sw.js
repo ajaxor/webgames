@@ -3,7 +3,7 @@
 //  2. Serves each downloaded game's files at  g/<id>/<path>  from the Cache API (filled by lib.js syncGame),
 //     injecting a per-game localStorage namespace and the game's own PWA manifest/icon into its HTML.
 //  3. Generates manifest/<id>.webmanifest from games.json, so every game installs as its own app.
-const CACHE = 'webgames-shell-v4';
+const CACHE = 'webgames-shell-v5';
 const SHELL = [
   './', 'index.html', 'install.html', 'play.html', 'lib.js', 'games.json',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
@@ -42,17 +42,19 @@ async function gamesJson() {
 const findGame = async id => ((await gamesJson()).games || []).find(g => g.id === id);
 
 /* ---- per-game manifest ---- */
-async function gameManifest(id) {
+async function gameManifest(id, k) {
   const g = await findGame(id);
   if (!g) return new Response('{}', { status: 404, headers: { 'Content-Type': 'application/json' } });
   const icon = g.icon || 'icons/icon-512.png';
   const start = abs('play.html?game=' + encodeURIComponent(id));
+  // k = an access token to hand to the installed app on its first launch (see play.html); not part of the app's identity.
+  const startUrl = k ? start + '&k=' + encodeURIComponent(k) : start;
   return new Response(JSON.stringify({
     id: start,
     name: g.title || id,
     short_name: g.shortName || g.title || id,
     description: g.description || '',
-    start_url: start,
+    start_url: startUrl,
     scope: SCOPE,
     display: 'standalone',
     orientation: g.orientation || 'any',
@@ -138,7 +140,7 @@ self.addEventListener('fetch', e => {
   const rel = url.pathname.slice(new URL(SCOPE).pathname.length);
 
   let m = /^manifest\/([^/]+)\.webmanifest$/.exec(rel);
-  if (m) { e.respondWith(gameManifest(decodeURIComponent(m[1]))); return; }
+  if (m) { e.respondWith(gameManifest(decodeURIComponent(m[1]), url.searchParams.get('k'))); return; }
 
   m = /^g\/([^/]+)\/(.*)$/.exec(rel);
   if (m) { e.respondWith(serveGame(decodeURIComponent(m[1]), m[2])); return; }

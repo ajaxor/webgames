@@ -30,8 +30,15 @@
 import { loadGames, getMeta, syncGame, registerSW, applyGameMeta, gameStartUrl, getToken, setToken, fmtBytes } from './lib.js';
 
 const $ = id => document.getElementById(id);
-const id = new URLSearchParams(location.search).get('game');
+const params = new URLSearchParams(location.search);
+const id = params.get('game');
 let game;
+// An installed app is launched with the token in its start URL (see install.html): keep it, then remove it from the address.
+if (params.get('k')) {
+  setToken(params.get('k'));
+  params.delete('k');
+  try { history.replaceState(null, '', location.pathname + '?' + params); } catch {}
+}
 
 function view(msg, { err = false, progress = null, sub = '' } = {}) {
   const s = $('status'); s.innerHTML = '';

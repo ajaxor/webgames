@@ -69,13 +69,18 @@
     <ol><li>Use the install icon in the address bar (Chrome / Edge), or the browser menu → <b>Install</b>.</li></ol>
   </div>
 
+  <label class="card hidden" id="tokenOpt" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+    <input type="checkbox" id="bundleToken" checked style="width:22px;height:22px;margin-top:2px;flex:none">
+    <span>Include my access token in the installed app, so it doesn’t ask for it again.<br><span class="note" style="margin:0">The token is saved inside the home-screen icon’s link on this device.</span></span>
+  </label>
+
   <a class="btn ghost" id="playBtn" href="#">Play in browser instead</a>
   <p class="note" id="tokenNote"></p>
 </div>
 <div class="err hidden" id="err"></div>
 
 <script type="module">
-import { loadGames, registerSW, applyGameMeta } from './lib.js';
+import { loadGames, registerSW, applyGameMeta, manifestHref, getToken, setToken, isStandalone } from './lib.js';
 const $ = id => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('game');
 registerSW();
@@ -95,7 +100,12 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   if (!game) return fail(id ? 'Unknown game "' + id + '".' : 'No game selected.');
 
   const playUrl = 'play.html?game=' + encodeURIComponent(game.id);
-  applyGameMeta(game);
+  const params = new URLSearchParams(location.search);
+  // Older iOS installs the page's own URL: an app started from it with a token in the address saves it and goes to the game.
+  if (isStandalone() && params.get('k')) { setToken(params.get('k')); location.replace(playUrl); return; }
+
+  const token = getToken();
+  applyGameMeta(game, token);
   $('icon').src = game.icon || 'icons/icon-512.png';
   $('title').textContent = game.title || game.id;
   $('desc').textContent = game.description || '';
@@ -103,7 +113,17 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   $('iosCard').classList.toggle('hidden', !isIOS);
   $('androidCard').classList.toggle('hidden', !isAndroid);
   $('desktopCard').classList.toggle('hidden', isIOS || isAndroid);
-  $('tokenNote').textContent = 'Heads up: an installed game keeps its own storage, so the first time you open it you’ll be asked to paste your access token once.';
+  $('tokenNote').textContent = 'An installed game keeps its own storage, so without the token option above it asks for your access token the first time it opens.';
+  if (token) {
+    $('tokenOpt').classList.remove('hidden');
+    // What "Add to Home Screen" saves: the manifest's start URL on current browsers, the page's own URL on older iOS.
+    const bundle = () => {
+      const on = $('bundleToken').checked;
+      document.querySelector('link[rel=manifest]').href = manifestHref(game, on ? token : '');
+      try { history.replaceState(null, '', location.pathname + '?game=' + encodeURIComponent(game.id) + (on ? '&k=' + encodeURIComponent(token) : '')); } catch {}
+    };
+    $('bundleToken').onchange = bundle; bundle();
+  }
   $('content').classList.remove('hidden');
 })();
 

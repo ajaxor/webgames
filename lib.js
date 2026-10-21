@@ -219,10 +219,17 @@ export function registerSW() {
 }
 
 /* Make the current page installable as this game's own PWA (name, icon, manifest, colours). */
-export function applyGameMeta(g) {
+export function manifestHref(g, token) {
+  return 'manifest/' + encodeURIComponent(g.id) + '.webmanifest' + (token ? '?k=' + encodeURIComponent(token) : '');
+}
+
+export const isStandalone = () =>
+  (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+
+export function applyGameMeta(g, token) {
   document.title = g.title || g.id;
   const add = (tag, attrs) => { const el = document.createElement(tag); Object.assign(el, attrs); document.head.appendChild(el); return el; };
-  add('link', { rel: 'manifest', href: 'manifest/' + encodeURIComponent(g.id) + '.webmanifest' });
+  add('link', { rel: 'manifest', href: manifestHref(g, token) });
   const icon = g.icon || 'icons/icon-512.png';
   add('link', { rel: 'icon', href: icon });
   add('link', { rel: 'apple-touch-icon', href: g.appleIcon || icon });
