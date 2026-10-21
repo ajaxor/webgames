@@ -3,7 +3,7 @@
 //  2. Serves each downloaded game's files at  g/<id>/<path>  from the Cache API (filled by lib.js syncGame),
 //     injecting a per-game localStorage namespace and the game's own PWA manifest/icon into its HTML.
 //  3. Generates manifest/<id>.webmanifest from games.json, so every game installs as its own app.
-const CACHE = 'webgames-shell-v5';
+const CACHE = 'webgames-shell-v6';
 const SHELL = [
   './', 'index.html', 'install.html', 'play.html', 'lib.js', 'games.json',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',

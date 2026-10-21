@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Web Games",
-  "short_name": "Games",
+  "name": "Nathan's Web Games",
+  "short_name": "Web Games",
   "description": "A launcher for my web games, synced from private GitHub repos.",
   "start_url": "./",
   "scope": "./",
