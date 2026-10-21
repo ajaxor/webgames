@@ -145,7 +145,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { getToken, setToken, loadGames, syncGame, allRecs, clearRecs, ago, registerSW, persistStorage } from './lib.js';
+import { getToken, setToken, loadGames, syncGame, getMeta, clearAll, ago, fmtBytes, registerSW, persistStorage } from './lib.js';
 
 const $ = id => document.getElementById(id);
 const grid = $('grid');
@@ -170,7 +170,7 @@ function setState(id, text, kind) {
   el.querySelector('.sync-one').classList.toggle('spin', kind === 'busy');
 }
 
-function render(recs) {
+function render(metas) {
   grid.innerHTML = '';
   if (!games.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No games yet.<br>Add entries to <code>games.json</code> in the repo.</div>';
@@ -192,8 +192,8 @@ function render(recs) {
     a.querySelector('p').textContent = g.description || '';
     a.querySelector('.sync-one').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); sync(g, true); });
     grid.appendChild(a);
-    const rec = recs.find(r => r.id === g.id);
-    if (rec) setState(g.id, 'Ready · ' + ago(rec.fetchedAt), 'ok');
+    const rec = metas[g.id];
+    if (rec) setState(g.id, 'Ready · ' + fmtBytes(rec.bytes) + ' · ' + ago(rec.fetchedAt), 'ok');
     else setState(g.id, 'Not downloaded', '');
   }
 }
@@ -201,9 +201,11 @@ function render(recs) {
 async function sync(g, announce) {
   setState(g.id, 'Checking…', 'busy');
   try {
-    const { status, rec } = await syncGame(g);
-    if (status === 'offline') setState(g.id, 'Offline · ' + ago(rec.fetchedAt), 'ok');
-    else setState(g.id, (status === 'updated' ? 'Updated · ' : 'Up to date · ') + ago(rec.fetchedAt), 'ok');
+    const { status, meta } = await syncGame(g, {
+      onProgress: (done, total) => total && setState(g.id, 'Downloading ' + done + '/' + total + '…', 'busy'),
+    });
+    if (status === 'offline') setState(g.id, 'Offline · ' + ago(meta.fetchedAt), 'ok');
+    else setState(g.id, (status === 'updated' ? 'Updated · ' : 'Up to date · ') + ago(meta.fetchedAt), 'ok');
     if (announce) toast(status === 'updated' ? g.title + ' updated' : status === 'offline' ? 'Offline' : g.title + ' is up to date');
   } catch (e) {
     setState(g.id, e.message, 'bad');
@@ -261,16 +263,16 @@ $('saveToken').onclick = () => {
 $('clearToken').onclick = () => { setToken(''); $('tokenInput').value = ''; refreshBanner(); toast('Token removed'); };
 $('clearGames').onclick = async () => {
   if (!confirm('Delete all downloaded games from this device? They can be downloaded again.')) return;
-  await clearRecs(); dlg.close(); render([]); toast('Downloads deleted');
+  await clearAll(); dlg.close(); render({}); toast('Downloads deleted');
 };
 $('syncAll').onclick = () => syncAll(true);
 
 (async function init() {
   try { games = await loadGames(); } catch (e) { toast(e.message, 4000); }
-  let recs = []; try { recs = await allRecs(); } catch {}
-  render(recs);
+  const metas = {}; for (const g of games) metas[g.id] = await getMeta(g.id);
+  render(metas);
   refreshBanner();
-  if (navigator.onLine && games.length && (getToken() || recs.length === 0)) syncAll(false);
+  if (navigator.onLine && games.length && getToken()) syncAll(false);
 })();
 </script>
 </body>

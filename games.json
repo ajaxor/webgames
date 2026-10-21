@@ -1,3 +1,20 @@
 {
-  "games": []
+  "games": [
+    {
+      "id": "pocketwars",
+      "title": "Pocket Wars",
+      "shortName": "Pocket Wars",
+      "description": "A turn-based tactics game. Capture the enemy HQ.",
+      "repo": "ajaxor/pocketwars",
+      "ref": "main",
+      "entry": "index.html",
+      "include": ["index.html", "style.css", "src/", "data/"],
+      "icon": "games/pocketwars/icon-512.png",
+      "maskableIcon": "games/pocketwars/icon-maskable-512.png",
+      "appleIcon": "games/pocketwars/apple-touch-icon.png",
+      "background": "#1d2436",
+      "theme": "#1d2436",
+      "orientation": "any"
+    }
+  ]
 }

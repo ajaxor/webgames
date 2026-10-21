@@ -75,7 +75,7 @@
 <div class="err hidden" id="err"></div>
 
 <script type="module">
-import { loadGames, getToken, registerSW, applyGameMeta, isStandalone } from './lib.js';
+import { loadGames, registerSW, applyGameMeta } from './lib.js';
 const $ = id => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('game');
 registerSW();
@@ -95,9 +95,6 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   if (!game) return fail(id ? 'Unknown game "' + id + '".' : 'No game selected.');
 
   const playUrl = 'play.html?game=' + encodeURIComponent(game.id);
-  // Opened from an installed home-screen icon (older iOS keeps this page's URL): go straight to the game.
-  if (isStandalone()) { location.replace(playUrl); return; }
-
   applyGameMeta(game);
   $('icon').src = game.icon || 'icons/icon-512.png';
   $('title').textContent = game.title || game.id;
