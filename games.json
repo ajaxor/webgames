@@ -40,6 +40,26 @@
       "background": "#0e2a1e",
       "theme": "#0e2a1e",
       "orientation": "portrait"
+    },
+    {
+      "id": "kingside",
+      "title": "Kingside",
+      "shortName": "Kingside",
+      "description": "Plan the town, let it run itself, burn the red keep.",
+      "repo": "ajaxor/kingside",
+      "ref": "main",
+      "entry": "index.html",
+      "include": [
+        "index.html",
+        "style.css",
+        "src/"
+      ],
+      "icon": "games/kingside/icon-512.png",
+      "maskableIcon": "games/kingside/icon-maskable-512.png",
+      "appleIcon": "games/kingside/apple-touch-icon.png",
+      "background": "#b7d1dd",
+      "theme": "#b7d1dd",
+      "orientation": "any"
     }
   ]
 }
