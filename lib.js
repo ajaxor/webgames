@@ -235,5 +235,6 @@ export function applyGameMeta(g, token) {
   add('link', { rel: 'apple-touch-icon', href: g.appleIcon || icon });
   const t = add('meta', {}); t.name = 'apple-mobile-web-app-title'; t.content = g.shortName || g.title || g.id;
   const c = document.querySelector('meta[name=theme-color]'); if (c) c.content = g.theme || g.background || '#0e0f13';
+  const sb = document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]'); if (sb) sb.content = g.statusBar || 'black';
   document.body.style.background = g.background || '#0e0f13';
 }

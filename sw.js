@@ -3,7 +3,7 @@
 //  2. Serves each downloaded game's files at  g/<id>/<path>  from the Cache API (filled by lib.js syncGame),
 //     injecting a per-game localStorage namespace and the game's own PWA manifest/icon into its HTML.
 //  3. Generates manifest/<id>.webmanifest from games.json, so every game installs as its own app.
-const CACHE = 'webgames-shell-v6';
+const CACHE = 'webgames-shell-v7';
 const SHELL = [
   './', 'index.html', 'install.html', 'play.html', 'lib.js', 'games.json',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
@@ -90,7 +90,10 @@ function pwaTags(g) {
   const icon = abs(g.appleIcon || g.icon || 'icons/icon-512.png');
   return '<link rel="manifest" href="' + abs('manifest/' + encodeURIComponent(g.id) + '.webmanifest') + '">' +
     '<link rel="apple-touch-icon" href="' + icon + '">' +
-    '<meta name="apple-mobile-web-app-title" content="' + esc(g.shortName || g.title || g.id) + '">';
+    '<meta name="apple-mobile-web-app-title" content="' + esc(g.shortName || g.title || g.id) + '">' +
+    // Opaque status bar: iOS then lays the page out below it. With black-translucent it sizes the page as if it started below the bar
+    // but draws it underneath, which leaves a dead strip at the bottom of the screen and misplaced HUDs.
+    '<meta name="apple-mobile-web-app-status-bar-style" content="' + esc(g.statusBar || 'black') + '">';
 }
 
 function rewriteHtml(html, id, game, isEntry) {
@@ -98,7 +101,7 @@ function rewriteHtml(html, id, game, isEntry) {
     // Our manifest/icon/title replace the game's own, so the installed app always matches games.json.
     html = html
       .replace(/<link\b[^>]*\brel=["']?(?:manifest|apple-touch-icon(?:-precomposed)?)["']?[^>]*>/gi, '')
-      .replace(/<meta\b[^>]*\bname=["']apple-mobile-web-app-title["'][^>]*>/gi, '');
+      .replace(/<meta\b[^>]*\bname=["']apple-mobile-web-app-(?:title|status-bar-style)["'][^>]*>/gi, '');
   }
   const inject = storageShim(id) + (game && isEntry ? pwaTags(game) : '');
   let m;
