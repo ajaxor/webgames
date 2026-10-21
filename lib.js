@@ -32,6 +32,7 @@ export async function loadGames() {
 
 /* ---------- where a game's files live ---------- */
 export const cacheName = id => 'wg-game-' + id;
+const stageName = id => 'wg-stage-' + id;
 const encPath = p => p.split('/').map(encodeURIComponent).join('/');
 const root = () => new URL('./', location.href).href;
 export const fileKey = (id, path) => new URL('g/' + encodeURIComponent(id) + '/' + encPath(path), root()).href;
@@ -44,9 +45,9 @@ export async function getMeta(id) {
     return r ? await r.json() : null;
   } catch { return null; }
 }
-export const removeGame = id => caches.delete(cacheName(id));
+export const removeGame = async id => { await caches.delete(cacheName(id)); await caches.delete(stageName(id)); };
 export async function clearAll() {
-  for (const k of await caches.keys()) if (k.startsWith('wg-game-')) await caches.delete(k);
+  for (const k of await caches.keys()) if (k.startsWith('wg-game-') || k.startsWith('wg-stage-')) await caches.delete(k);
 }
 export function persistStorage() {
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
@@ -69,12 +70,17 @@ function ghHeaders(accept, extra) {
   if (t) h.Authorization = 'Bearer ' + t;
   return h;
 }
-function httpError(status) {
+function httpError(status, res) {
   const token = !!getToken();
   let msg;
   if (status === 401) msg = 'GitHub rejected the access token (expired or mistyped).';
-  else if (status === 403) msg = 'GitHub refused the request (rate limit, or the token lacks access).';
-  else if (status === 404) msg = token
+  else if (status === 403 || status === 429) {
+    const reset = res && +res.headers.get('x-ratelimit-reset');
+    if (res && res.headers.get('x-ratelimit-remaining') === '0' && reset) {
+      msg = 'GitHub rate limit reached' + (token ? '' : ' (without a token GitHub allows only 60 requests an hour; a token raises that to 5,000)') +
+        '. It resets at ' + new Date(reset * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
+    } else msg = 'GitHub refused the request (rate limit, or the token lacks access).';
+  } else if (status === 404) msg = token
     ? 'Not found. Check the repo in games.json and that the token can read that repo.'
     : 'Not found. Private repos need an access token.';
   else msg = 'GitHub returned HTTP ' + status + '.';
@@ -84,9 +90,12 @@ function httpError(status) {
 const matches = (path, list) => list.some(p => path === p || path.startsWith(p.endsWith('/') ? p : p + '/'));
 
 async function pool(items, n, fn) {
-  let i = 0;
+  let i = 0, stop = false;
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
-    while (i < items.length) { const k = i++; await fn(items[k], k); }
+    while (i < items.length && !stop) {
+      const k = i++;
+      try { await fn(items[k], k); } catch (e) { stop = true; throw e; }
+    }
   }));
 }
 
@@ -95,7 +104,7 @@ async function fetchBlob(repo, sha) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const r = await fetch(`${API}${repo}/git/blobs/${sha}`, { headers: ghHeaders('application/vnd.github.raw+json'), cache: 'no-store' });
-      if (!r.ok) throw httpError(r.status);
+      if (!r.ok) throw httpError(r.status, r);
       return await r.arrayBuffer();
     } catch (e) {
       if (e.status) throw e; // a real HTTP answer: don't retry
@@ -127,7 +136,7 @@ export async function syncGame(g, { force = false, onProgress, checkTimeoutMs } 
     throw new Error('You appear to be offline and this game has not been downloaded yet.');
   }
   if (r.status === 304 && meta) return { status: 'unchanged', meta };
-  if (!r.ok) throw httpError(r.status);
+  if (!r.ok) throw httpError(r.status, r);
 
   const etag = r.headers.get('ETag') || '';
   const data = await r.json();
@@ -158,19 +167,38 @@ export async function syncGame(g, { force = false, onProgress, checkTimeoutMs } 
     return { status: 'unchanged', meta: next };
   }
 
-  const got = new Map();
-  let done = 0;
-  if (onProgress) onProgress(0, toFetch.length);
-  await pool(toFetch, 8, async path => {
-    got.set(path, await fetchBlob(g.repo, want[path]));
-    if (onProgress) onProgress(++done, toFetch.length);
-  });
+  // Downloads are staged by git SHA first, so a failed or rate-limited attempt resumes where it stopped
+  // and the game's live files are only touched once everything has arrived.
+  const stage = await caches.open(stageName(g.id));
+  const skey = sha => new URL('stage/' + sha, root()).href;
+  const missing = [];
+  for (const p of toFetch) if (!(await stage.match(skey(want[p])))) missing.push(p);
 
-  for (const [path, buf] of got) {
+  if (!getToken() && missing.length > 40) {
+    const e = new Error(`This game needs ${missing.length} downloads, but without an access token GitHub allows only 60 requests an hour. Add a token to continue.`);
+    e.status = 401;
+    throw e;
+  }
+
+  let done = toFetch.length - missing.length;
+  let failed = false; // downloads still in flight when one fails must not redraw progress over the error
+  if (onProgress) onProgress(done, toFetch.length);
+  try {
+    await pool(missing, 8, async path => {
+      const sha = want[path];
+      await stage.put(skey(sha), new Response(await fetchBlob(g.repo, sha)));
+      done++;
+      if (onProgress && !failed) onProgress(done, toFetch.length);
+    });
+  } catch (e) { failed = true; throw e; }
+
+  for (const path of toFetch) {
+    const buf = await (await stage.match(skey(want[path]))).arrayBuffer();
     await cache.put(fileKey(g.id, path), new Response(buf, { headers: { 'Content-Type': mimeOf(path) } }));
   }
   for (const path of toDelete) await cache.delete(fileKey(g.id, path));
   await putMeta();
+  await caches.delete(stageName(g.id));
   persistStorage();
   return { status: 'updated', meta: next };
 }
