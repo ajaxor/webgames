@@ -37,9 +37,6 @@
   }
   .icon-btn:active { background: var(--panel-2); }
   .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .spin svg { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
   .banner {
     background: #2a2210; border: 1px solid #5a4614; color: #f0d48a; border-radius: 12px;
     padding: 12px 14px; margin-bottom: 16px; font-size: 14px; display: none;
@@ -56,14 +53,7 @@
   .card .body { padding: 10px 12px 12px; }
   .card h2 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
   .card p { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .status { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
-  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.busy { background: var(--accent); animation: pulse 1s infinite; }
-  @keyframes pulse { 50% { opacity: .3; } }
-  .sync-one {
-    position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 10px; padding: 0; min-width: 0;
-    background: rgba(14,15,19,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  }
+  .cta { font-size: 12.5px; font-weight: 600; color: var(--accent); }
 
   .empty { text-align: center; color: var(--muted); padding: 48px 12px; border: 1px dashed var(--line); border-radius: 18px; }
   .empty code { background: var(--panel); padding: 2px 6px; border-radius: 6px; color: var(--text); }
@@ -104,16 +94,13 @@
 <body>
 <header>
   <h1>Nathan's Web <span>Games</span></h1>
-  <button class="icon-btn" id="syncAll" title="Check for updates" aria-label="Check for updates">
-    <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-  </button>
   <button class="icon-btn" id="openSettings" title="Settings" aria-label="Settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
 </header>
 
 <div class="banner" id="tokenBanner">
-  No access token yet — private games can't download without one.
+  No access token yet — add one so installed games can download from your private repos.
   <button class="icon-btn" id="bannerSettings" style="height:30px;font-size:13px">Add token</button>
 </div>
 
@@ -129,30 +116,27 @@
       <button class="btn ghost" id="pasteBtn" type="button">Paste</button>
     </div>
     <div class="stack">
-      <button class="btn" id="saveToken" type="button">Save &amp; sync</button>
+      <button class="btn" id="saveToken" type="button">Save</button>
       <div class="row">
         <button class="btn ghost" id="copyToken" type="button" style="flex:1">Copy token</button>
         <button class="btn ghost danger" id="clearToken" type="button" style="flex:1">Remove</button>
       </div>
-      <button class="btn ghost" id="clearGames" type="button">Delete downloaded games</button>
       <button class="btn ghost" id="closeSettings" type="button">Done</button>
     </div>
-    <p class="note">Install: in Safari tap Share → Add to Home Screen; in Chrome use ⋮ → Install app. Open any game and install it separately to give it its own icon.</p>
+    <p class="note">Tap a game to install it on its own. Games download the first time you open them from the Home Screen.</p>
   </div>
 </dialog>
 
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { getToken, setToken, loadGames, syncGame, getMeta, clearAll, ago, fmtBytes, registerSW, persistStorage } from './lib.js';
+import { getToken, setToken, loadGames, registerSW } from './lib.js';
 
 const $ = id => document.getElementById(id);
 const grid = $('grid');
 let games = [];
-const state = {}; // id -> { text, kind }
 
-registerSW();
-persistStorage();
+registerSW(); // the service worker generates each game's install manifest
 
 function toast(msg, ms = 2600) {
   const t = $('toast');
@@ -160,16 +144,7 @@ function toast(msg, ms = 2600) {
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms);
 }
 
-function setState(id, text, kind) {
-  state[id] = { text, kind };
-  const el = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
-  if (!el) return;
-  el.querySelector('.status span').textContent = text;
-  el.querySelector('.dot').className = 'dot ' + (kind || '');
-  el.querySelector('.sync-one').classList.toggle('spin', kind === 'busy');
-}
-
-function render(metas) {
+function render() {
   grid.innerHTML = '';
   if (!games.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No games yet.<br>Add entries to <code>games.json</code> in the repo.</div>';
@@ -178,46 +153,17 @@ function render(metas) {
   for (const g of games) {
     const a = document.createElement('a');
     a.className = 'card';
-    a.dataset.id = g.id;
     a.href = 'install.html?game=' + encodeURIComponent(g.id);
-    const img = g.icon || 'icons/icon-512.png';
-    a.innerHTML = `
-      <img class="art" alt="" loading="lazy" src="${img}">
-      <button class="icon-btn sync-one" type="button" aria-label="Update ${g.title}">
-        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-      </button>
-      <div class="body"><h2></h2><p></p><div class="status"><i class="dot"></i><span></span></div></div>`;
-    a.querySelector('h2').textContent = g.title || g.id;
-    a.querySelector('p').textContent = g.description || '';
-    a.querySelector('.sync-one').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); sync(g, true); });
+    const img = document.createElement('img');
+    img.className = 'art'; img.alt = ''; img.loading = 'lazy'; img.src = g.icon || 'icons/icon-512.png';
+    const body = document.createElement('div'); body.className = 'body';
+    const h = document.createElement('h2'); h.textContent = g.title || g.id;
+    const p = document.createElement('p'); p.textContent = g.description || '';
+    const cta = document.createElement('div'); cta.className = 'cta'; cta.textContent = 'Install ›';
+    body.append(h, p, cta);
+    a.append(img, body);
     grid.appendChild(a);
-    const rec = metas[g.id];
-    if (rec) setState(g.id, 'Ready · ' + fmtBytes(rec.bytes) + ' · ' + ago(rec.fetchedAt), 'ok');
-    else setState(g.id, 'Not downloaded', '');
   }
-}
-
-async function sync(g, announce) {
-  setState(g.id, 'Checking…', 'busy');
-  try {
-    const { status, meta } = await syncGame(g, {
-      onProgress: (done, total) => total && setState(g.id, 'Downloading ' + done + '/' + total + '…', 'busy'),
-    });
-    if (status === 'offline') setState(g.id, 'Offline · ' + ago(meta.fetchedAt), 'ok');
-    else setState(g.id, (status === 'updated' ? 'Updated · ' : 'Up to date · ') + ago(meta.fetchedAt), 'ok');
-    if (announce) toast(status === 'updated' ? g.title + ' updated' : status === 'offline' ? 'Offline' : g.title + ' is up to date');
-  } catch (e) {
-    setState(g.id, e.message, 'bad');
-    if (announce) toast(e.message, 4500);
-  }
-}
-
-async function syncAll(announce) {
-  if (!games.length) return;
-  $('syncAll').classList.add('spin');
-  await Promise.all(games.map(g => sync(g, false)));
-  $('syncAll').classList.remove('spin');
-  if (announce) toast('Checked ' + games.length + ' game' + (games.length === 1 ? '' : 's'));
 }
 
 function refreshBanner() {
@@ -252,21 +198,14 @@ $('copyToken').onclick = async () => {
 };
 $('saveToken').onclick = () => {
   setToken($('tokenInput').value);
-  dlg.close(); refreshBanner(); toast('Token saved'); syncAll(false);
+  dlg.close(); refreshBanner(); toast('Token saved');
 };
 $('clearToken').onclick = () => { setToken(''); $('tokenInput').value = ''; refreshBanner(); toast('Token removed'); };
-$('clearGames').onclick = async () => {
-  if (!confirm('Delete all downloaded games from this device? They can be downloaded again.')) return;
-  await clearAll(); dlg.close(); render({}); toast('Downloads deleted');
-};
-$('syncAll').onclick = () => syncAll(true);
 
 (async function init() {
   try { games = await loadGames(); } catch (e) { toast(e.message, 4000); }
-  const metas = {}; for (const g of games) metas[g.id] = await getMeta(g.id);
-  render(metas);
+  render();
   refreshBanner();
-  if (navigator.onLine && games.length && getToken()) syncAll(false);
 })();
 </script>
 </body>

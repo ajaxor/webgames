@@ -78,7 +78,6 @@
     <p class="note">If Safari doesn’t open, tap Copy link, open Safari and paste it into the address bar.</p>
   </div>
 
-  <a class="btn ghost" id="playBtn" href="#">Play in browser instead</a>
   <p class="note" id="tokenNote"></p>
 </div>
 <div class="err hidden" id="err"></div>
@@ -116,13 +115,12 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   $('icon').src = game.icon || 'icons/icon-512.png';
   $('title').textContent = game.title || game.id;
   $('desc').textContent = game.description || '';
-  $('playBtn').href = playUrl;
   $('iosCard').classList.toggle('hidden', !isIOS);
   $('androidCard').classList.toggle('hidden', !isAndroid);
   $('desktopCard').classList.toggle('hidden', isIOS || isAndroid);
   $('tokenNote').textContent = token
-    ? 'Your access token is built into the installed app, so it won’t ask for it.'
-    : 'Add your access token in the launcher’s Settings first: installed apps get it from there.';
+    ? 'Your access token is built into the installed app, so it won’t ask for it. The game downloads the first time you open it from the Home Screen.'
+    : 'Add your access token in the launcher’s Settings first: installed apps get it from there. The game downloads the first time you open it from the Home Screen.';
   if (token && !standalone) {
     // What "Add to Home Screen" saves: the manifest's start URL on current browsers, the page's own URL on older iOS.
     try { history.replaceState(null, '', location.pathname + '?game=' + encodeURIComponent(game.id) + '&k=' + encodeURIComponent(token)); } catch {}

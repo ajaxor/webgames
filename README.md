@@ -8,11 +8,12 @@ GitHub Pages → Settings → Pages → deploy from `main` / root. Then open `ht
 
 ## Using it
 
-1. Open the launcher → ⚙ Settings → paste a GitHub token → **Save & sync**.
-   Use a fine-grained token with **Contents: read-only** on just the game repos.
-2. Tap a game for its install page, then Play. First launch downloads it; afterwards it runs offline and quietly checks for updates (ETag-based, so unchanged games cost almost nothing).
-3. Tapping a game's icon opens its install page (`install.html?game=<id>`) with Add-to-Home-Screen instructions (and an Install button on Android/Chrome). The installed app starts at `play.html?game=<id>` with its own name and icon.
-   An installed app gets the token from its install link (see Notes).
+The launcher is only an installer. It never downloads or runs games itself.
+
+1. Open the launcher → ⚙ Settings → paste a GitHub token → **Save**.
+   Use a fine-grained token with **Contents: read-only** on just the game repos. Settings also has a Copy button, for sharing it.
+2. Tap a game to open its install page and add it to the Home Screen (iOS: Share → Add to Home Screen in Safari; Android: Install app). Inside the installed launcher the page offers Open in Safari / Share link / Copy link instead, since iOS only installs from Safari.
+3. The installed game starts at `play.html?game=<id>`, which downloads the game from its repo the first time (and checks for updates on every launch), then opens it. It runs offline afterwards. The token is built into the install link (see Notes), so it doesn't ask for it.
 
 ## Adding a game
 
@@ -38,11 +39,11 @@ GitHub Pages → Settings → Pages → deploy from `main` / root. Then open `ht
    }
    ```
    `entry` (default `index.html`), `include` (default: whole repo) and `exclude` (extra paths to skip; `.git*`, `.github/`, `node_modules/` are always skipped) take file paths or `dir/` prefixes. Only list what the game needs at runtime — tests, docs and art galleries just waste phone storage. `ref` is a branch or tag. Icon fields besides `icon`, and the colours, are optional.
-4. Commit and push; the launcher picks it up next time it's opened online.
+4. Commit and push; the game appears in the launcher next time it's opened online.
 
 ## How games are served
 
-- Tapping a game opens `install.html?game=<id>` (install instructions); **Play** / the installed icon opens `play.html?game=<id>`, which syncs the repo and then navigates to `g/<id>/<entry>`.
+- Tapping a game opens `install.html?game=<id>` (install instructions only). The installed icon opens `play.html?game=<id>`, which syncs the repo and then navigates to `g/<id>/<entry>`.
 - Sync reads the repo tree through the GitHub API (one conditional request, so an unchanged game costs almost nothing), downloads only files whose git SHA changed, and stores them in the Cache API. A failed update never leaves a half-updated game.
 - `sw.js` answers requests under `g/<id>/…` from that cache, so relative imports and `fetch`es just work, and works offline. It also rewrites the entry HTML to (a) namespace `localStorage` per game (`wg:<id>:`) and (b) use the manifest, icon and title from `games.json` instead of the game's own.
 - A game's own service worker / `manifest.webmanifest` are ignored (its `sw.js` is never served as a worker: it's outside our scope). Games must not rely on being served from the site root or on their own deploy pipeline.
