@@ -123,14 +123,14 @@
       </div>
       <button class="btn ghost" id="closeSettings" type="button">Done</button>
     </div>
-    <p class="note">Tap a game to install it on its own. Games download the first time you open them from the Home Screen.</p>
+    <p class="note">Tap a game to install it on its own (from the installed launcher this opens Safari). Games download the first time you open them from the Home Screen.</p>
   </div>
 </dialog>
 
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { getToken, setToken, loadGames, registerSW } from './lib.js';
+import { getToken, setToken, loadGames, registerSW, isStandalone } from './lib.js';
 
 const $ = id => document.getElementById(id);
 const grid = $('grid');
@@ -154,6 +154,18 @@ function render() {
     const a = document.createElement('a');
     a.className = 'card';
     a.href = 'install.html?game=' + encodeURIComponent(g.id);
+    if (isStandalone()) {
+      // iOS only offers Add to Home Screen in Safari, so from the installed launcher hand the game's install page to Safari
+      // (x-safari-https links, iOS 17+). The token rides along because Safari has its own storage.
+      const t = getToken();
+      const link = new URL(a.getAttribute('href') + (t ? '&k=' + encodeURIComponent(t) : ''), location.href).href;
+      a.href = 'x-safari-' + link;
+      a.addEventListener('click', () => {
+        // Fallback for iOS versions that ignore the link: the page address is on the clipboard to paste into Safari.
+        try { navigator.clipboard.writeText(link); } catch {}
+        setTimeout(() => { if (!document.hidden) toast('Safari didn’t open? The link is copied — paste it into Safari.', 6000); }, 1500);
+      });
+    }
     const img = document.createElement('img');
     img.className = 'art'; img.alt = ''; img.loading = 'lazy'; img.src = g.icon || 'icons/icon-512.png';
     const body = document.createElement('div'); body.className = 'body';
