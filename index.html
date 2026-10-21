@@ -122,17 +122,16 @@
 <dialog id="settings">
   <div class="sheet">
     <h3>Settings</h3>
-    <p class="sub">The GitHub token is stored only on this device. Paste a read-only, fine-grained token that can read your game repos.</p>
+    <p class="sub">The token is stored on this device and built into each game you install. Use a read-only, fine-grained token for your game repos; copy it here to share with friends.</p>
     <label for="tokenInput">GitHub access token</label>
     <div class="row">
-      <input id="tokenInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
+      <input id="tokenInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
       <button class="btn ghost" id="pasteBtn" type="button">Paste</button>
     </div>
     <div class="stack">
       <button class="btn" id="saveToken" type="button">Save &amp; sync</button>
       <div class="row">
-        <button class="btn ghost" id="showToken" type="button" style="flex:1">Show</button>
-        <button class="btn ghost" id="copyToken" type="button" style="flex:1">Copy</button>
+        <button class="btn ghost" id="copyToken" type="button" style="flex:1">Copy token</button>
         <button class="btn ghost danger" id="clearToken" type="button" style="flex:1">Remove</button>
       </div>
       <button class="btn ghost" id="clearGames" type="button">Delete downloaded games</button>
@@ -229,16 +228,11 @@ function refreshBanner() {
 const dlg = $('settings');
 function openSettings() {
   $('tokenInput').value = getToken();
-  $('tokenInput').type = 'password'; $('showToken').textContent = 'Show';
   dlg.showModal();
 }
 $('openSettings').onclick = openSettings;
 $('bannerSettings').onclick = openSettings;
 $('closeSettings').onclick = () => dlg.close();
-$('showToken').onclick = () => {
-  const i = $('tokenInput'); const hide = i.type === 'text';
-  i.type = hide ? 'password' : 'text'; $('showToken').textContent = hide ? 'Show' : 'Hide';
-};
 $('pasteBtn').onclick = async () => {
   try { $('tokenInput').value = (await navigator.clipboard.readText()).trim(); }
   catch { toast('Clipboard blocked — long-press the field to paste'); $('tokenInput').focus(); }
@@ -246,15 +240,15 @@ $('pasteBtn').onclick = async () => {
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; }
   catch {
-    const i = $('tokenInput'); const prev = i.type; i.type = 'text'; i.focus(); i.select();
+    const i = $('tokenInput'); i.focus(); i.select();
     let ok = false; try { ok = document.execCommand('copy'); } catch {}
-    i.type = prev; return ok;
+    return ok;
   }
 }
 $('copyToken').onclick = async () => {
   const t = $('tokenInput').value.trim() || getToken();
   if (!t) return toast('No token to copy');
-  toast((await copyText(t)) ? 'Token copied' : 'Copy failed — use Show, then select it');
+  toast((await copyText(t)) ? 'Token copied' : 'Copy failed — long-press the token to select it');
 };
 $('saveToken').onclick = () => {
   setToken($('tokenInput').value);

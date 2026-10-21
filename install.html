@@ -69,18 +69,13 @@
     <ol><li>Use the install icon in the address bar (Chrome / Edge), or the browser menu → <b>Install</b>.</li></ol>
   </div>
 
-  <label class="card hidden" id="tokenOpt" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
-    <input type="checkbox" id="bundleToken" checked style="width:22px;height:22px;margin-top:2px;flex:none">
-    <span>Include my access token in the installed app, so it doesn’t ask for it again.<br><span class="note" style="margin:0">The token is saved inside the home-screen icon’s link on this device.</span></span>
-  </label>
-
   <a class="btn ghost" id="playBtn" href="#">Play in browser instead</a>
   <p class="note" id="tokenNote"></p>
 </div>
 <div class="err hidden" id="err"></div>
 
 <script type="module">
-import { loadGames, registerSW, applyGameMeta, manifestHref, getToken, setToken, isStandalone } from './lib.js';
+import { loadGames, registerSW, applyGameMeta, getToken, setToken, isStandalone } from './lib.js';
 const $ = id => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('game');
 registerSW();
@@ -113,16 +108,12 @@ $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt()
   $('iosCard').classList.toggle('hidden', !isIOS);
   $('androidCard').classList.toggle('hidden', !isAndroid);
   $('desktopCard').classList.toggle('hidden', isIOS || isAndroid);
-  $('tokenNote').textContent = 'An installed game keeps its own storage, so without the token option above it asks for your access token the first time it opens.';
+  $('tokenNote').textContent = token
+    ? 'Your access token is built into the installed app, so it won’t ask for it.'
+    : 'Add your access token in the launcher’s Settings first: installed apps get it from there.';
   if (token) {
-    $('tokenOpt').classList.remove('hidden');
     // What "Add to Home Screen" saves: the manifest's start URL on current browsers, the page's own URL on older iOS.
-    const bundle = () => {
-      const on = $('bundleToken').checked;
-      document.querySelector('link[rel=manifest]').href = manifestHref(game, on ? token : '');
-      try { history.replaceState(null, '', location.pathname + '?game=' + encodeURIComponent(game.id) + (on ? '&k=' + encodeURIComponent(token) : '')); } catch {}
-    };
-    $('bundleToken').onchange = bundle; bundle();
+    try { history.replaceState(null, '', location.pathname + '?game=' + encodeURIComponent(game.id) + '&k=' + encodeURIComponent(token)); } catch {}
   }
   $('content').classList.remove('hidden');
 })();
