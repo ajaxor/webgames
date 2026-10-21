@@ -109,7 +109,7 @@
 <dialog id="settings">
   <div class="sheet">
     <h3>Settings</h3>
-    <p class="sub">The token is stored on this device and built into each game you install. Use a read-only, fine-grained token for your game repos; copy it here to share with friends.</p>
+    <p class="sub">The token is stored on this device and built into each game you install. Use a read-only, fine-grained token for your game repos. To share, copy the launcher link with the token built in: your friend just opens it.</p>
     <label for="tokenInput">GitHub access token</label>
     <div class="row">
       <input id="tokenInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
@@ -121,6 +121,7 @@
         <button class="btn ghost" id="copyToken" type="button" style="flex:1">Copy token</button>
         <button class="btn ghost danger" id="clearToken" type="button" style="flex:1">Remove</button>
       </div>
+      <button class="btn ghost" id="copyLink" type="button">Copy launcher link with token</button>
       <button class="btn ghost" id="closeSettings" type="button">Done</button>
     </div>
     <p class="note">Tap a game to install it on its own (from the installed launcher this opens Safari). Games download the first time you open them from the Home Screen.</p>
@@ -137,6 +138,22 @@ const grid = $('grid');
 let games = [];
 
 registerSW(); // the service worker generates each game's install manifest
+
+// A link like  .../webgames/?k=<token>  carries the access token to a new device.
+const params = new URLSearchParams(location.search);
+if (params.get('k')) {
+  setToken(params.get('k'));
+  if (isStandalone()) { // the installed app doesn't need it in its address (a browser tab keeps it, so Add to Home Screen can save it)
+    params.delete('k');
+    try { history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '')); } catch {}
+  }
+}
+// So the launcher installs with the token too, its manifest's start URL carries it (the service worker builds that manifest).
+function syncManifest() {
+  const t = getToken();
+  document.querySelector('link[rel=manifest]').href = t ? 'manifest/_launcher.webmanifest?k=' + encodeURIComponent(t) : 'manifest.webmanifest';
+}
+syncManifest();
 
 function toast(msg, ms = 2600) {
   const t = $('toast');
@@ -210,9 +227,15 @@ $('copyToken').onclick = async () => {
 };
 $('saveToken').onclick = () => {
   setToken($('tokenInput').value);
-  dlg.close(); refreshBanner(); toast('Token saved');
+  dlg.close(); refreshBanner(); syncManifest(); toast('Token saved');
 };
-$('clearToken').onclick = () => { setToken(''); $('tokenInput').value = ''; refreshBanner(); toast('Token removed'); };
+$('clearToken').onclick = () => { setToken(''); $('tokenInput').value = ''; refreshBanner(); syncManifest(); toast('Token removed'); };
+$('copyLink').onclick = async () => {
+  const t = $('tokenInput').value.trim() || getToken();
+  if (!t) return toast('Add a token first');
+  const link = new URL('./?k=' + encodeURIComponent(t), location.href).href;
+  toast((await copyText(link)) ? 'Launcher link copied — it contains your token' : 'Copy failed');
+};
 
 (async function init() {
   try { games = await loadGames(); } catch (e) { toast(e.message, 4000); }

@@ -11,7 +11,7 @@ GitHub Pages → Settings → Pages → deploy from `main` / root. Then open `ht
 The launcher is only an installer. It never downloads or runs games itself.
 
 1. Open the launcher → ⚙ Settings → paste a GitHub token → **Save**.
-   Use a fine-grained token with **Contents: read-only** on just the game repos. Settings also has a Copy button, for sharing it.
+   Use a fine-grained token with **Contents: read-only** on just the game repos. To share, use **Copy launcher link with token**: `https://<user>.github.io/webgames/?k=<token>`. Opening that link saves the token on the friend's device (and the launcher, if they install it, starts with it too).
 2. Tap a game to open its install page and add it to the Home Screen (iOS: Share → Add to Home Screen in Safari; Android: Install app). In the installed launcher, tapping a game opens its install page in Safari (an `x-safari-https://` link, iOS 17+, with the token appended) since iOS only installs from Safari; if Safari doesn't open, the link is on the clipboard to paste.
 3. The installed game starts at `play.html?game=<id>`, which downloads the game from its repo the first time (and checks for updates on every launch), then opens it. It runs offline afterwards. The token is built into the install link (see Notes), so it doesn't ask for it.
 

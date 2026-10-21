@@ -3,7 +3,7 @@
 //  2. Serves each downloaded game's files at  g/<id>/<path>  from the Cache API (filled by lib.js syncGame),
 //     injecting a per-game localStorage namespace and the game's own PWA manifest/icon into its HTML.
 //  3. Generates manifest/<id>.webmanifest from games.json, so every game installs as its own app.
-const CACHE = 'webgames-shell-v10';
+const CACHE = 'webgames-shell-v11';
 const SHELL = [
   './', 'index.html', 'install.html', 'play.html', 'lib.js', 'games.json',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
@@ -42,7 +42,18 @@ async function gamesJson() {
 const findGame = async id => ((await gamesJson()).games || []).find(g => g.id === id);
 
 /* ---- per-game manifest ---- */
+async function launcherManifest(k) {
+  const r = (await caches.match(abs('manifest.webmanifest'))) || (await fetch(abs('manifest.webmanifest')));
+  const m = await r.json();
+  const start = abs('./');
+  m.id = start; m.scope = SCOPE;
+  m.start_url = k ? start + '?k=' + encodeURIComponent(k) : start; // the installed launcher receives the token from its start URL
+  m.icons = m.icons.map(i => ({ ...i, src: abs(i.src) }));
+  return new Response(JSON.stringify(m), { headers: { 'Content-Type': 'application/manifest+json' } });
+}
+
 async function gameManifest(id, k) {
+  if (id === '_launcher') return launcherManifest(k);
   const g = await findGame(id);
   if (!g) return new Response('{}', { status: 404, headers: { 'Content-Type': 'application/json' } });
   const icon = g.icon || 'icons/icon-512.png';
