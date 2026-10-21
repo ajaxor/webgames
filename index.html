@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Web Games</title>
+<meta name="theme-color" content="#0e0f13">
+<meta name="description" content="Launcher for my web games.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --bg: #0e0f13; --panel: #171922; --panel-2: #1f222d; --line: #2a2e3b;
+    --text: #eceef4; --muted: #8b90a3; --accent: #e8a93a; --accent-ink: #1a1305;
+    --ok: #5cc98a; --bad: #ef6a6a;
+    --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    min-height: 100vh; padding: calc(var(--safe-t) + 16px) 16px calc(var(--safe-b) + 24px);
+    max-width: 760px; margin: 0 auto;
+  }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+  h1 { font-size: 24px; letter-spacing: -.02em; margin: 0; flex: 1; }
+  h1 span { color: var(--accent); }
+  .icon-btn {
+    appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    height: 40px; min-width: 40px; padding: 0 12px; border-radius: 12px; font: inherit; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  }
+  .icon-btn:active { background: var(--panel-2); }
+  .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .spin svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .banner {
+    background: #2a2210; border: 1px solid #5a4614; color: #f0d48a; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 16px; font-size: 14px; display: none;
+  }
+  .banner button { margin-left: 8px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
+    display: flex; flex-direction: column; position: relative; text-decoration: none; color: inherit;
+  }
+  .card:active { transform: scale(.98); }
+  .card .art { aspect-ratio: 1; width: 100%; background: var(--panel-2); display: block; object-fit: cover; }
+  .card .body { padding: 10px 12px 12px; }
+  .card h2 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
+  .card p { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .status { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.busy { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .sync-one {
+    position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 10px; padding: 0; min-width: 0;
+    background: rgba(14,15,19,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+
+  .empty { text-align: center; color: var(--muted); padding: 48px 12px; border: 1px dashed var(--line); border-radius: 18px; }
+  .empty code { background: var(--panel); padding: 2px 6px; border-radius: 6px; color: var(--text); }
+
+  /* settings sheet */
+  dialog {
+    border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 20px;
+    padding: 0; width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 40px);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .sheet { padding: 18px; }
+  .sheet h3 { margin: 0 0 4px; font-size: 18px; }
+  .sheet .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; }
+  input[type=password], input[type=text] {
+    flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); padding: 0 12px; font: 15px ui-monospace, Menlo, monospace;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .btn {
+    appearance: none; border: 0; border-radius: 12px; height: 44px; padding: 0 16px; font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.ghost { background: var(--panel-2); color: var(--text); font-weight: 500; border: 1px solid var(--line); }
+  .btn.danger { color: var(--bad); }
+  .btn:active { filter: brightness(.9); }
+  .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(var(--safe-b) + 20px); transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px;
+    font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: calc(100vw - 32px); text-align: center;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Web <span>Games</span></h1>
+  <button class="icon-btn" id="syncAll" title="Check for updates" aria-label="Check for updates">
+    <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+  </button>
+  <button class="icon-btn" id="openSettings" title="Settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+
+<div class="banner" id="tokenBanner">
+  No access token yet — private games can't download without one.
+  <button class="icon-btn" id="bannerSettings" style="height:30px;font-size:13px">Add token</button>
+</div>
+
+<main class="grid" id="grid"></main>
+
+<dialog id="settings">
+  <div class="sheet">
+    <h3>Settings</h3>
+    <p class="sub">The GitHub token is stored only on this device. Paste a read-only, fine-grained token that can read your game repos.</p>
+    <label for="tokenInput">GitHub access token</label>
+    <div class="row">
+      <input id="tokenInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
+      <button class="btn ghost" id="pasteBtn" type="button">Paste</button>
+    </div>
+    <div class="stack">
+      <button class="btn" id="saveToken" type="button">Save &amp; sync</button>
+      <div class="row">
+        <button class="btn ghost" id="showToken" type="button" style="flex:1">Show</button>
+        <button class="btn ghost" id="copyToken" type="button" style="flex:1">Copy</button>
+        <button class="btn ghost danger" id="clearToken" type="button" style="flex:1">Remove</button>
+      </div>
+      <button class="btn ghost" id="clearGames" type="button">Delete downloaded games</button>
+      <button class="btn ghost" id="closeSettings" type="button">Done</button>
+    </div>
+    <p class="note">Install: in Safari tap Share → Add to Home Screen; in Chrome use ⋮ → Install app. Open any game and install it separately to give it its own icon.</p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { getToken, setToken, loadGames, syncGame, allRecs, clearRecs, ago, registerSW, persistStorage } from './lib.js';
+
+const $ = id => document.getElementById(id);
+const grid = $('grid');
+let games = [];
+const state = {}; // id -> { text, kind }
+
+registerSW();
+persistStorage();
+
+function toast(msg, ms = 2600) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function setState(id, text, kind) {
+  state[id] = { text, kind };
+  const el = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (!el) return;
+  el.querySelector('.status span').textContent = text;
+  el.querySelector('.dot').className = 'dot ' + (kind || '');
+  el.querySelector('.sync-one').classList.toggle('spin', kind === 'busy');
+}
+
+function render(recs) {
+  grid.innerHTML = '';
+  if (!games.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No games yet.<br>Add entries to <code>games.json</code> in the repo.</div>';
+    return;
+  }
+  for (const g of games) {
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.dataset.id = g.id;
+    a.href = 'play.html?game=' + encodeURIComponent(g.id);
+    const img = g.icon || 'icons/icon-512.png';
+    a.innerHTML = `
+      <img class="art" alt="" loading="lazy" src="${img}">
+      <button class="icon-btn sync-one" type="button" aria-label="Update ${g.title}">
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <div class="body"><h2></h2><p></p><div class="status"><i class="dot"></i><span></span></div></div>`;
+    a.querySelector('h2').textContent = g.title || g.id;
+    a.querySelector('p').textContent = g.description || '';
+    a.querySelector('.sync-one').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); sync(g, true); });
+    grid.appendChild(a);
+    const rec = recs.find(r => r.id === g.id);
+    if (rec) setState(g.id, 'Ready · ' + ago(rec.fetchedAt), 'ok');
+    else setState(g.id, 'Not downloaded', '');
+  }
+}
+
+async function sync(g, announce) {
+  setState(g.id, 'Checking…', 'busy');
+  try {
+    const { status, rec } = await syncGame(g);
+    if (status === 'offline') setState(g.id, 'Offline · ' + ago(rec.fetchedAt), 'ok');
+    else setState(g.id, (status === 'updated' ? 'Updated · ' : 'Up to date · ') + ago(rec.fetchedAt), 'ok');
+    if (announce) toast(status === 'updated' ? g.title + ' updated' : status === 'offline' ? 'Offline' : g.title + ' is up to date');
+  } catch (e) {
+    setState(g.id, e.message, 'bad');
+    if (announce) toast(e.message, 4500);
+  }
+}
+
+async function syncAll(announce) {
+  if (!games.length) return;
+  $('syncAll').classList.add('spin');
+  await Promise.all(games.map(g => sync(g, false)));
+  $('syncAll').classList.remove('spin');
+  if (announce) toast('Checked ' + games.length + ' game' + (games.length === 1 ? '' : 's'));
+}
+
+function refreshBanner() {
+  $('tokenBanner').style.display = !getToken() && games.length ? 'block' : 'none';
+}
+
+/* settings */
+const dlg = $('settings');
+function openSettings() {
+  $('tokenInput').value = getToken();
+  $('tokenInput').type = 'password'; $('showToken').textContent = 'Show';
+  dlg.showModal();
+}
+$('openSettings').onclick = openSettings;
+$('bannerSettings').onclick = openSettings;
+$('closeSettings').onclick = () => dlg.close();
+$('showToken').onclick = () => {
+  const i = $('tokenInput'); const hide = i.type === 'text';
+  i.type = hide ? 'password' : 'text'; $('showToken').textContent = hide ? 'Show' : 'Hide';
+};
+$('pasteBtn').onclick = async () => {
+  try { $('tokenInput').value = (await navigator.clipboard.readText()).trim(); }
+  catch { toast('Clipboard blocked — long-press the field to paste'); $('tokenInput').focus(); }
+};
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch {
+    const i = $('tokenInput'); const prev = i.type; i.type = 'text'; i.focus(); i.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    i.type = prev; return ok;
+  }
+}
+$('copyToken').onclick = async () => {
+  const t = $('tokenInput').value.trim() || getToken();
+  if (!t) return toast('No token to copy');
+  toast((await copyText(t)) ? 'Token copied' : 'Copy failed — use Show, then select it');
+};
+$('saveToken').onclick = () => {
+  setToken($('tokenInput').value);
+  dlg.close(); refreshBanner(); toast('Token saved'); syncAll(false);
+};
+$('clearToken').onclick = () => { setToken(''); $('tokenInput').value = ''; refreshBanner(); toast('Token removed'); };
+$('clearGames').onclick = async () => {
+  if (!confirm('Delete all downloaded games from this device? They can be downloaded again.')) return;
+  await clearRecs(); dlg.close(); render([]); toast('Downloads deleted');
+};
+$('syncAll').onclick = () => syncAll(true);
+
+(async function init() {
+  try { games = await loadGames(); } catch (e) { toast(e.message, 4000); }
+  let recs = []; try { recs = await allRecs(); } catch {}
+  render(recs);
+  refreshBanner();
+  if (navigator.onLine && games.length && (getToken() || recs.length === 0)) syncAll(false);
+})();
+</script>
+</body>
+</html>
