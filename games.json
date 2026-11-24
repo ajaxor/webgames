@@ -60,6 +60,24 @@
       "background": "#b7d1dd",
       "theme": "#b7d1dd",
       "orientation": "any"
+    },
+    {
+      "id": "prism",
+      "title": "Prism",
+      "shortName": "Prism",
+      "description": "Roguelike card battler. Connects to my Prism server.",
+      "repo": "ajaxor/Prism",
+      "ref": "main",
+      "entry": "pwa/index.html",
+      "include": [
+        "pwa/index.html"
+      ],
+      "icon": "games/prism/icon-512.png",
+      "maskableIcon": "games/prism/icon-maskable-512.png",
+      "appleIcon": "games/prism/apple-touch-icon.png",
+      "background": "#07070d",
+      "theme": "#07070d",
+      "orientation": "portrait"
     }
   ]
 }

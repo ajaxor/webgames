@@ -48,6 +48,10 @@ The launcher is only an installer. It never downloads or runs games itself.
 - `sw.js` answers requests under `g/<id>/…` from that cache, so relative imports and `fetch`es just work, and works offline. It also rewrites the entry HTML to (a) namespace `localStorage` per game (`wg:<id>:`) and (b) use the manifest, icon and title from `games.json` instead of the game's own.
 - A game's own service worker / `manifest.webmanifest` are ignored (its `sw.js` is never served as a worker: it's outside our scope). Games must not rely on being served from the site root or on their own deploy pipeline.
 
+## Wrapper games (games that run on their own server)
+
+A game can be just a tiny shell page that frames a live server (e.g. `prism`, entry `pwa/index.html`, `include: ["pwa/index.html"]`). The launcher then only provides the icon, full screen and updates the shell (and the server address inside it) from the repo; the game itself is never cached. The server must be https and allow framing.
+
 ## Notes
 
 - The launcher shell is cached by a service worker; bump `CACHE` in `sw.js` if you change the shell and want phones to pick it up immediately.
